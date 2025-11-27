@@ -12,58 +12,59 @@ export const useAuthStore = create<AuthState>()(
 
       login: async (email: string, password: string) => {
         try {
-          // Mock login - backend bo'lmaganda
-          const mockUser: User = {
-            id: "1",
-            firstName: "Admin",
-            lastName: "User",
-            email: email,
-            role: email.includes("admin") ? "admin" : email.includes("employer") ? "employer" : "jobseeker",
-            createdAt: new Date().toISOString(),
-          };
+          const response = await axiosInstance.post("/auth/login", {
+            email,
+            password,
+          });
           
-          const mockToken = "mock-jwt-token-" + Date.now();
+          const { token, user } = response.data;
           
-          localStorage.setItem("token", mockToken);
-          localStorage.setItem("user", JSON.stringify(mockUser));
+          localStorage.setItem("token", token);
+          localStorage.setItem("user", JSON.stringify(user));
           
           set({
-            user: mockUser,
-            token: mockToken,
+            user,
+            token,
             isAuthenticated: true,
           });
-        } catch (error) {
+        } catch (error: unknown) {
           console.error("Login error:", error);
-          throw error;
+          if ((error as any)?.isNetworkError) {
+            throw new Error((error as any).networkErrorMessage || "Backend server is not running. Please start the server.");
+          }
+          const axiosError = error as any;
+          throw new Error(axiosError.response?.data?.error || axiosError.message || "Login failed");
         }
       },
 
       register: async (data: RegisterData) => {
         try {
-          // Mock registration
-          const mockUser: User = {
-            id: Date.now().toString(),
+          const response = await axiosInstance.post("/auth/register", {
             firstName: data.firstName,
             lastName: data.lastName,
             email: data.email,
             phone: data.phone,
+            password: data.password,
             role: data.role,
-            createdAt: new Date().toISOString(),
-          };
+          });
           
-          const mockToken = "mock-jwt-token-" + Date.now();
+          const { token, user } = response.data;
           
-          localStorage.setItem("token", mockToken);
-          localStorage.setItem("user", JSON.stringify(mockUser));
+          localStorage.setItem("token", token);
+          localStorage.setItem("user", JSON.stringify(user));
           
           set({
-            user: mockUser,
-            token: mockToken,
+            user,
+            token,
             isAuthenticated: true,
           });
-        } catch (error) {
+        } catch (error: unknown) {
           console.error("Register error:", error);
-          throw error;
+          if ((error as any)?.isNetworkError) {
+            throw new Error((error as any).networkErrorMessage || "Backend server is not running. Please start the server.");
+          }
+          const axiosError = error as any;
+          throw new Error(axiosError.response?.data?.error || axiosError.message || "Registration failed");
         }
       },
 

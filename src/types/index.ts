@@ -34,13 +34,28 @@ export interface Vacancy {
   title: string;
   company: string;
   location: string;
-  salary?: string;
   description: string;
-  requirements: string[];
+  requirements?: string; // Text description of requirements
+  responsibilities?: string;
+  benefits?: string;
+  category?: string;
+  workType?: string;
+  remoteWork?: boolean;
+  salaryMin?: number;
+  salaryMax?: number;
+  salaryType?: string;
+  salary?: string; // Legacy field for backward compatibility
+  experienceLevel?: string;
+  experienceYears?: string;
+  skills?: string[];
   employerId: string;
   status: "active" | "closed" | "pending";
   matchScore?: number;
+  applicationDeadline?: string;
+  vacanciesCount?: number;
+  urgent?: boolean;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Application {

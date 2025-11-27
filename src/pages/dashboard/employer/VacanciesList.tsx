@@ -7,101 +7,101 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { vacancyService, type Vacancy } from "@/services/vacancies";
 import { 
   Search, Filter, Plus, Eye, Edit, Trash2, Users, Calendar, 
   MapPin, Building, Clock, DollarSign, TrendingUp, Copy,
-  MoreVertical, PauseCircle, PlayCircle, Share2
+  MoreVertical, PauseCircle, PlayCircle, Share2, Loader2
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-// Mock data for vacancies
-const mockVacancies = [
-  {
-    id: 1,
-    title: "Senior Frontend Developer",
-    company: "TechCorp Uzbekistan",
-    location: "Toshkent",
-    workType: "full-time",
-    status: "active",
-    experience: "3-5 years",
-    salary: "$2000-$3500",
-    applications: 24,
-    views: 156,
-    createdDate: "2024-01-15",
-    deadline: "2024-02-15",
-    description: "We are looking for an experienced Frontend Developer to join our team...",
-    skills: ["React", "TypeScript", "Next.js", "Tailwind CSS"],
-    urgent: true
-  },
-  {
-    id: 2,
-    title: "Backend Node.js Developer",
-    company: "Digital Solutions",
-    location: "Samarqand",
-    workType: "full-time",
-    status: "active",
-    experience: "2-4 years",
-    salary: "$1800-$2500",
-    applications: 18,
-    views: 89,
-    createdDate: "2024-01-14",
-    deadline: "2024-02-10",
-    description: "Join our backend team to build scalable APIs and services...",
-    skills: ["Node.js", "Express", "MongoDB", "PostgreSQL"],
-    urgent: false
-  },
-  {
-    id: 3,
-    title: "Full Stack Developer",
-    company: "StartUp Ventures",
-    location: "Remote",
-    workType: "full-time",
-    status: "paused",
-    experience: "1-3 years",
-    salary: "$1500-$2200",
-    applications: 32,
-    views: 203,
-    createdDate: "2024-01-10",
-    deadline: "2024-02-01",
-    description: "We need a versatile full stack developer for our growing startup...",
-    skills: ["JavaScript", "React", "Node.js", "MySQL"],
-    urgent: false
-  },
-  {
-    id: 4,
-    title: "React Native Developer",
-    company: "Mobile First",
-    location: "Toshkent",
-    workType: "contract",
-    status: "closed",
-    experience: "2-3 years",
-    salary: "$1700-$2400",
-    applications: 15,
-    views: 67,
-    createdDate: "2024-01-08",
-    deadline: "2024-01-25",
-    description: "Develop cross-platform mobile applications using React Native...",
-    skills: ["React Native", "JavaScript", "Redux", "Firebase"],
-    urgent: true
-  },
-  {
-    id: 5,
-    title: "DevOps Engineer",
-    company: "Cloud Systems",
-    location: "Remote",
-    workType: "full-time",
-    status: "active",
-    experience: "4-6 years",
-    salary: "$2500-$3500",
-    applications: 8,
-    views: 45,
-    createdDate: "2024-01-05",
-    deadline: "2024-02-20",
-    description: "Manage and optimize our cloud infrastructure and deployment pipelines...",
-    skills: ["AWS", "Docker", "Kubernetes", "CI/CD"],
-    urgent: false
-  }
-];
+// Remove mock data - using API now
+//   {
+//     id: 1,
+//     title: "Senior Frontend Developer",
+//     company: "TechCorp Uzbekistan",
+//     location: "Toshkent",
+//     workType: "full-time",
+//     status: "active",
+//     experience: "3-5 years",
+//     salary: "$2000-$3500",
+//     applications: 24,
+//     views: 156,
+//     createdDate: "2024-01-15",
+//     deadline: "2024-02-15",
+//     description: "We are looking for an experienced Frontend Developer to join our team...",
+//     skills: ["React", "TypeScript", "Next.js", "Tailwind CSS"],
+//     urgent: true
+//   },
+//   {
+//     id: 2,
+//     title: "Backend Node.js Developer",
+//     company: "Digital Solutions",
+//     location: "Samarqand",
+//     workType: "full-time",
+//     status: "active",
+//     experience: "2-4 years",
+//     salary: "$1800-$2500",
+//     applications: 18,
+//     views: 89,
+//     createdDate: "2024-01-14",
+//     deadline: "2024-02-10",
+//     description: "Join our backend team to build scalable APIs and services...",
+//     skills: ["Node.js", "Express", "MongoDB", "PostgreSQL"],
+//     urgent: false
+//   },
+//   {
+//     id: 3,
+//     title: "Full Stack Developer",
+//     company: "StartUp Ventures",
+//     location: "Remote",
+//     workType: "full-time",
+//     status: "paused",
+//     experience: "1-3 years",
+//     salary: "$1500-$2200",
+//     applications: 32,
+//     views: 203,
+//     createdDate: "2024-01-10",
+//     deadline: "2024-02-01",
+//     description: "We need a versatile full stack developer for our growing startup...",
+//     skills: ["JavaScript", "React", "Node.js", "MySQL"],
+//     urgent: false
+//   },
+//   {
+//     id: 4,
+//     title: "React Native Developer",
+//     company: "Mobile First",
+//     location: "Toshkent",
+//     workType: "contract",
+//     status: "closed",
+//     experience: "2-3 years",
+//     salary: "$1700-$2400",
+//     applications: 15,
+//     views: 67,
+//     createdDate: "2024-01-08",
+//     deadline: "2024-01-25",
+//     description: "Develop cross-platform mobile applications using React Native...",
+//     skills: ["React Native", "JavaScript", "Redux", "Firebase"],
+//     urgent: true
+//   },
+//   {
+//     id: 5,
+//     title: "DevOps Engineer",
+//     company: "Cloud Systems",
+//     location: "Remote",
+//     workType: "full-time",
+//     status: "active",
+//     experience: "4-6 years",
+//     salary: "$2500-$3500",
+//     applications: 8,
+//     views: 45,
+//     createdDate: "2024-01-05",
+//     deadline: "2024-02-20",
+//     description: "Manage and optimize our cloud infrastructure and deployment pipelines...",
+//     skills: ["AWS", "Docker", "Kubernetes", "CI/CD"],
+//     urgent: false
+//   }
+// ];
 
 const statusFilters = [
   { value: "all", label: "Barchasi", count: 5 },
@@ -138,12 +138,32 @@ const getStatusText = (status: string) => {
 
 export default function VacanciesList() {
   const navigate = useNavigate();
-  const [vacancies, setVacancies] = useState(mockVacancies);
-  const [filteredVacancies, setFilteredVacancies] = useState(mockVacancies);
+  const [vacancies, setVacancies] = useState<Vacancy[]>([]);
+  const [filteredVacancies, setFilteredVacancies] = useState<Vacancy[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [workTypeFilter, setWorkTypeFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
+
+  // Fetch vacancies on component mount
+  useEffect(() => {
+    loadVacancies();
+  }, []);
+
+  const loadVacancies = async () => {
+    try {
+      setIsLoading(true);
+      const data = await vacancyService.getAll({ status: "active" });
+      setVacancies(data);
+      setFilteredVacancies(data);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Vakansiyalarni yuklashda xatolik yuz berdi";
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Filter vacancies
   useEffect(() => {
@@ -154,7 +174,7 @@ export default function VacanciesList() {
       result = result.filter(vacancy =>
         vacancy.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         vacancy.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        vacancy.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()))
+        (vacancy.skills && vacancy.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase())))
       );
     }
 
@@ -170,11 +190,10 @@ export default function VacanciesList() {
 
     // Sort
     if (sortBy === "newest") {
-      result = [...result].sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime());
+      result = [...result].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
     } else if (sortBy === "applications") {
-      result = [...result].sort((a, b) => b.applications - a.applications);
-    } else if (sortBy === "views") {
-      result = [...result].sort((a, b) => b.views - a.views);
+      // Sort by application count if available
+      result = [...result].sort((a: any, b: any) => (b.applicationCount || 0) - (a.applicationCount || 0));
     }
 
     setFilteredVacancies(result);
@@ -184,27 +203,43 @@ export default function VacanciesList() {
     navigate("/dashboard/create-vacancy");
   };
 
-  const handleEdit = (id: number) => {
+  const handleEdit = (id: string) => {
     navigate(`/dashboard/edit-vacancy/${id}`);
-    toast.info("Vakansiya tahrirlanmoqda...");
   };
 
-  const handleDelete = (id: number) => {
-    if (confirm("Bu vakansiyani o'chirishni istaysizmi?")) {
-      setVacancies(prev => prev.filter(vacancy => vacancy.id !== id));
+  const handleDelete = async (id: string | number) => {
+    const idStr = typeof id === 'number' ? id.toString() : id;
+    if (!confirm("Bu vakansiyani o'chirishni istaysizmi?")) return;
+    
+    try {
+      await vacancyService.delete(idStr);
+      setVacancies(prev => prev.filter(vacancy => vacancy.id !== idStr));
+      setFilteredVacancies(prev => prev.filter(vacancy => vacancy.id !== idStr));
       toast.success("Vakansiya muvaffaqiyatli o'chirildi");
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Vakansiyani o'chirishda xatolik yuz berdi";
+      toast.error(errorMessage);
     }
   };
 
-  const handleToggleStatus = (id: number, currentStatus: string) => {
-    const newStatus = currentStatus === "active" ? "paused" : "active";
-    setVacancies(prev => prev.map(vacancy =>
-      vacancy.id === id ? { ...vacancy, status: newStatus } : vacancy
-    ));
-    toast.success(`Vakansiya ${newStatus === "active" ? "faollashtirildi" : "to'xtatildi"}`);
+  const handleToggleStatus = async (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === "active" ? "closed" : "active";
+    try {
+      await vacancyService.update(id, { status: newStatus });
+      setVacancies(prev => prev.map(vacancy =>
+        vacancy.id === id ? { ...vacancy, status: newStatus as any } : vacancy
+      ));
+      setFilteredVacancies(prev => prev.map(vacancy =>
+        vacancy.id === id ? { ...vacancy, status: newStatus as any } : vacancy
+      ));
+      toast.success(`Vakansiya ${newStatus === "active" ? "faollashtirildi" : "yopildi"}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Status o'zgartirishda xatolik";
+      toast.error(errorMessage);
+    }
   };
 
-  const handleViewApplicants = (id: number) => {
+  const handleViewApplicants = (id: string) => {
     navigate(`/dashboard/applicants/${id}`);
     toast.info("Arizalar ko'rib chiqilmoqda...");
   };
@@ -256,8 +291,8 @@ export default function VacanciesList() {
   const stats = {
     total: vacancies.length,
     active: vacancies.filter(v => v.status === 'active').length,
-    applications: vacancies.reduce((sum, v) => sum + v.applications, 0),
-    views: vacancies.reduce((sum, v) => sum + v.views, 0)
+    applications: vacancies.reduce((sum, v: any) => sum + (v.applicationCount || 0), 0),
+    views: 0 // Not available in API yet
   };
 
   return (
@@ -330,7 +365,17 @@ export default function VacanciesList() {
           </Card>
         </div>
 
+        {/* Loading State */}
+        {isLoading && (
+          <Card>
+            <CardContent className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </CardContent>
+          </Card>
+        )}
+
         {/* Search and Filters */}
+        {!isLoading && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -424,6 +469,7 @@ export default function VacanciesList() {
             </div>
           </CardContent>
         </Card>
+        )}
 
         {/* Vacancies List */}
         <div className="space-y-4">
@@ -482,46 +528,50 @@ export default function VacanciesList() {
                       </div>
 
                       {/* Vacancy Details */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4 text-sm">
                         <div className="flex items-center">
                           <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                          <span>{vacancy.workType}</span>
+                          <span>{vacancy.workType || "Noma'lum"}</span>
                         </div>
                         <div className="flex items-center">
                           <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
-                          <span>{vacancy.salary}</span>
+                          <span>
+                            {vacancy.salaryMin && vacancy.salaryMax 
+                              ? `$${vacancy.salaryMin}-$${vacancy.salaryMax}` 
+                              : vacancy.salary || "Ko'rsatilmagan"}
+                          </span>
                         </div>
                         <div className="flex items-center">
                           <Users className="h-4 w-4 mr-2 text-muted-foreground" />
-                          <span>{vacancy.applications} ariza</span>
-                        </div>
-                        <div className="flex items-center">
-                          <Eye className="h-4 w-4 mr-2 text-muted-foreground" />
-                          <span>{vacancy.views} ko'rish</span>
+                          <span>{(vacancy as any).applicationCount || 0} ariza</span>
                         </div>
                       </div>
 
                       {/* Skills */}
-                      <div className="mb-4">
-                        <div className="flex flex-wrap gap-1">
-                          {vacancy.skills.map((skill, index) => (
-                            <Badge key={index} variant="secondary" className="bg-blue-50 text-blue-700">
-                              {skill}
-                            </Badge>
-                          ))}
+                      {vacancy.skills && vacancy.skills.length > 0 && (
+                        <div className="mb-4">
+                          <div className="flex flex-wrap gap-1">
+                            {vacancy.skills.map((skill, index) => (
+                              <Badge key={index} variant="secondary" className="bg-blue-50 text-blue-700">
+                                {skill}
+                              </Badge>
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       {/* Dates */}
                       <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
                         <div className="flex items-center">
                           <Calendar className="h-3 w-3 mr-1" />
-                          Yaratilgan: {formatDate(vacancy.createdDate)}
+                          Yaratilgan: {formatDate(vacancy.createdAt)}
                         </div>
-                        <div className="flex items-center">
-                          <Clock className="h-3 w-3 mr-1" />
-                          Muddati: {formatDate(vacancy.deadline)} ({getDaysRemaining(vacancy.deadline)})
-                        </div>
+                        {vacancy.applicationDeadline && (
+                          <div className="flex items-center">
+                            <Clock className="h-3 w-3 mr-1" />
+                            Muddati: {formatDate(vacancy.applicationDeadline)} ({getDaysRemaining(vacancy.applicationDeadline)})
+                          </div>
+                        )}
                       </div>
                     </div>
 

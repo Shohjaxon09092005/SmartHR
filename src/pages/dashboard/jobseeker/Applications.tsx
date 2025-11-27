@@ -7,113 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Search, Filter, Calendar, MapPin, Building, Clock, Eye, Trash2, Download, Share2, ChevronDown, ChevronUp } from "lucide-react";
+import { applicationService, type Application } from "@/services/applications";
+import { Loader2, Search, Filter, Calendar, MapPin, Building, Clock, Eye, Trash2, Download, Share2, ChevronDown, ChevronUp } from "lucide-react";
 
-// Mock data
-const mockApplications = [
-  {
-    id: 1,
-    jobTitle: "Senior Frontend Developer",
-    company: "TechCorp Uzbekistan",
-    location: "Toshkent",
-    appliedDate: "2024-01-15",
-    status: "interview",
-    statusText: "Intervyu bosqichi",
-    companyLogo: "/api/placeholder/40/40",
-    salary: "$2000-$3000",
-    type: "Full-time",
-    matchScore: 95,
-    timeline: [
-      { date: "2024-01-15", event: "Ariza yuborildi", status: "completed" },
-      { date: "2024-01-16", event: "Ariza ko'rib chiqildi", status: "completed" },
-      { date: "2024-01-20", event: "Intervyu chaqiruvi", status: "completed" },
-      { date: "2024-01-25", event: "Intervyu", status: "current" },
-      { date: "2024-01-30", event: "Yakuniy qaror", status: "upcoming" }
-    ],
-    notes: "Technical intervyu React va TypeScript bo'yicha bo'ladi",
-    contactPerson: "Malika Karimova",
-    contactEmail: "hr@techcorp.uz"
-  },
-  {
-    id: 2,
-    jobTitle: "Backend Node.js Developer",
-    company: "Digital Solutions",
-    location: "Samarqand",
-    appliedDate: "2024-01-14",
-    status: "review",
-    statusText: "Ko'rib chiqilmoqda",
-    companyLogo: "/api/placeholder/40/40",
-    salary: "$1800-$2500",
-    type: "Full-time",
-    matchScore: 87,
-    timeline: [
-      { date: "2024-01-14", event: "Ariza yuborildi", status: "completed" },
-      { date: "2024-01-16", event: "Ariza ko'rib chiqilmoqda", status: "current" },
-      { date: "2024-01-22", event: "Keyingi bosqich", status: "upcoming" }
-    ]
-  },
-  {
-    id: 3,
-    jobTitle: "Full Stack Developer",
-    company: "StartUp Ventures",
-    location: "Remote",
-    appliedDate: "2024-01-13",
-    status: "rejected",
-    statusText: "Rad etildi",
-    companyLogo: "/api/placeholder/40/40",
-    salary: "$1500-$2200",
-    type: "Full-time",
-    matchScore: 78,
-    timeline: [
-      { date: "2024-01-13", event: "Ariza yuborildi", status: "completed" },
-      { date: "2024-01-14", event: "Ariza ko'rib chiqildi", status: "completed" },
-      { date: "2024-01-15", event: "Rad etildi", status: "completed" }
-    ],
-    rejectionReason: "Tajriba talab qilinadigan darajada emas"
-  },
-  {
-    id: 4,
-    jobTitle: "React Native Developer",
-    company: "Mobile First",
-    location: "Toshkent",
-    appliedDate: "2024-01-12",
-    status: "accepted",
-    statusText: "Qabul qilindi",
-    companyLogo: "/api/placeholder/40/40",
-    salary: "$1700-$2400",
-    type: "Contract",
-    matchScore: 92,
-    timeline: [
-      { date: "2024-01-12", event: "Ariza yuborildi", status: "completed" },
-      { date: "2024-01-13", event: "Ariza ko'rib chiqildi", status: "completed" },
-      { date: "2024-01-14", event: "Intervyu", status: "completed" },
-      { date: "2024-01-15", event: "Taklif qilindi", status: "completed" },
-      { date: "2024-01-16", event: "Qabul qilindi", status: "completed" }
-    ],
-    offerDetails: {
-      salary: "$2300",
-      startDate: "2024-02-01",
-      benefits: ["Health insurance", "Flexible hours", "Remote work options"]
-    }
-  },
-  {
-    id: 5,
-    jobTitle: "DevOps Engineer",
-    company: "Cloud Systems",
-    location: "Remote",
-    appliedDate: "2024-01-11",
-    status: "applied",
-    statusText: "Ariza yuborildi",
-    companyLogo: "/api/placeholder/40/40",
-    salary: "$2500-$3500",
-    type: "Full-time",
-    matchScore: 65,
-    timeline: [
-      { date: "2024-01-11", event: "Ariza yuborildi", status: "completed" },
-      { date: "2024-01-18", event: "Status yangilanishi", status: "upcoming" }
-    ]
-  }
-];
+// Remove mock data - using API now
 
 const statusFilters = [
   { value: "all", label: "Barchasi", count: 5 },
@@ -147,11 +44,31 @@ const getStatusProgress = (status: string) => {
 };
 
 export default function Applications() {
-  const [applications, setApplications] = useState(mockApplications);
-  const [filteredApplications, setFilteredApplications] = useState(mockApplications);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [filteredApplications, setFilteredApplications] = useState<Application[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [expandedApplication, setExpandedApplication] = useState<number | null>(null);
+  const [expandedApplication, setExpandedApplication] = useState<string | null>(null);
+
+  // Fetch applications on component mount
+  useEffect(() => {
+    loadApplications();
+  }, []);
+
+  const loadApplications = async () => {
+    try {
+      setIsLoading(true);
+      const data = await applicationService.getAll();
+      setApplications(data);
+      setFilteredApplications(data);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Arizalarni yuklashda xatolik yuz berdi";
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Filter applications
   useEffect(() => {
@@ -160,8 +77,8 @@ export default function Applications() {
     // Search filter
     if (searchTerm) {
       result = result.filter(app =>
-        app.jobTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.company.toLowerCase().includes(searchTerm.toLowerCase())
+        (app.jobTitle || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (app.company || "").toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -173,12 +90,19 @@ export default function Applications() {
     setFilteredApplications(result);
   }, [searchTerm, statusFilter, applications]);
 
-  const handleWithdrawApplication = (applicationId: number) => {
-    setApplications(prev => prev.filter(app => app.id !== applicationId));
-    toast.success("Ariza muvaffaqiyatli bekor qilindi");
+  const handleWithdrawApplication = async (applicationId: string) => {
+    try {
+      await applicationService.delete(applicationId);
+      setApplications(prev => prev.filter(app => app.id !== applicationId));
+      setFilteredApplications(prev => prev.filter(app => app.id !== applicationId));
+      toast.success("Ariza muvaffaqiyatli bekor qilindi");
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Arizani bekor qilishda xatolik yuz berdi";
+      toast.error(errorMessage);
+    }
   };
 
-  const handleViewDetails = (applicationId: number) => {
+  const handleViewDetails = (applicationId: string) => {
     if (expandedApplication === applicationId) {
       setExpandedApplication(null);
     } else {

@@ -10,9 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { generateJobDescription } from "@/lib/aiClient";
+import { vacancyService } from "@/services/vacancies";
+import { useNavigate } from "react-router-dom";
 import { Loader2, Sparkles, Save, Plus, Trash2, Building, MapPin, DollarSign, Clock, Users, Award } from "lucide-react";
 
 export default function CreateVacancy() {
+  const navigate = useNavigate();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -147,39 +150,34 @@ Format it professionally in Uzbek language.`;
 
     setIsSaving(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Here you would typically send data to your backend
-      console.log("Saving vacancy:", formData);
+      await vacancyService.create({
+        title: formData.title,
+        company: formData.company,
+        location: formData.location,
+        description: formData.description,
+        requirements: formData.requirements || undefined,
+        responsibilities: formData.responsibilities || undefined,
+        benefits: formData.benefits || undefined,
+        category: formData.category || undefined,
+        workType: formData.workType,
+        remoteWork: formData.remoteWork,
+        salaryMin: formData.salaryMin ? parseInt(formData.salaryMin) : undefined,
+        salaryMax: formData.salaryMax ? parseInt(formData.salaryMax) : undefined,
+        salaryType: formData.salaryType || undefined,
+        experienceLevel: formData.experienceLevel || undefined,
+        experienceYears: formData.experienceYears || undefined,
+        skills: formData.skills.length > 0 ? formData.skills : undefined,
+        applicationDeadline: formData.applicationDeadline || undefined,
+        vacanciesCount: formData.vacanciesCount ? parseInt(formData.vacanciesCount) : undefined,
+        urgent: formData.urgent,
+      });
       
       toast.success("Vakansiya muvaffaqiyatli saqlandi!");
       
-      // Reset form
-      setFormData({
-        title: "",
-        company: "",
-        location: "",
-        workType: "full-time",
-        remoteWork: false,
-        salaryMin: "",
-        salaryMax: "",
-        salaryType: "monthly",
-        experienceLevel: "mid-level",
-        experienceYears: "",
-        category: "",
-        skills: [],
-        newSkill: "",
-        requirements: "",
-        responsibilities: "",
-        benefits: "",
-        description: "",
-        applicationDeadline: "",
-        vacanciesCount: "1",
-        urgent: false,
-      });
-    } catch (error) {
-      toast.error("Vakansiyani saqlashda xatolik yuz berdi");
+      // Navigate to vacancies list
+      navigate("/dashboard/vacancies");
+    } catch (error: any) {
+      toast.error(error.message || "Vakansiyani saqlashda xatolik yuz berdi");
     } finally {
       setIsSaving(false);
     }

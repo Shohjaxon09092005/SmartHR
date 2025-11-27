@@ -1,4 +1,4 @@
-    import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,94 +7,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Search, Filter, MapPin, Briefcase, Clock, DollarSign, Building, Star, Bookmark, Share2 } from "lucide-react";
+import { jobService } from "@/services/jobs";
+import { applicationService } from "@/services/applications";
+import { Search, Filter, MapPin, Briefcase, Clock, DollarSign, Building, Star, Bookmark, Share2, Loader2 } from "lucide-react";
+import type { JobMatch } from "@/services/jobs";
 
-// Mock data - keyin real API bilan almashtiriladi
-const mockJobMatches = [
-  {
-    id: 1,
-    title: "Senior Frontend Developer",
-    company: "TechCorp Uzbekistan",
-    location: "Toshkent",
-    type: "Full-time",
-    salary: "$2000-$3000",
-    experience: "3-5 years",
-    skills: ["React", "TypeScript", "Next.js", "Tailwind CSS"],
-    match: 95,
-    description: "We are looking for an experienced Frontend Developer to join our team...",
-    postedDate: "2024-01-15",
-    isSaved: false,
-    urgency: "high"
-  },
-  {
-    id: 2,
-    title: "Backend Node.js Developer",
-    company: "Digital Solutions",
-    location: "Samarqand",
-    type: "Full-time",
-    salary: "$1800-$2500",
-    experience: "2-4 years",
-    skills: ["Node.js", "Express", "MongoDB", "PostgreSQL"],
-    match: 87,
-    description: "Join our backend team to build scalable APIs and services...",
-    postedDate: "2024-01-14",
-    isSaved: true,
-    urgency: "medium"
-  },
-  {
-    id: 3,
-    title: "Full Stack Developer",
-    company: "StartUp Ventures",
-    location: "Remote",
-    type: "Full-time",
-    salary: "$1500-$2200",
-    experience: "1-3 years",
-    skills: ["JavaScript", "React", "Node.js", "MySQL"],
-    match: 78,
-    description: "We need a versatile full stack developer for our growing startup...",
-    postedDate: "2024-01-13",
-    isSaved: false,
-    urgency: "low"
-  },
-  {
-    id: 4,
-    title: "React Native Developer",
-    company: "Mobile First",
-    location: "Toshkent",
-    type: "Contract",
-    salary: "$1700-$2400",
-    experience: "2-3 years",
-    skills: ["React Native", "JavaScript", "Redux", "Firebase"],
-    match: 92,
-    description: "Develop cross-platform mobile applications using React Native...",
-    postedDate: "2024-01-12",
-    isSaved: false,
-    urgency: "high"
-  },
-  {
-    id: 5,
-    title: "DevOps Engineer",
-    company: "Cloud Systems",
-    location: "Remote",
-    type: "Full-time",
-    salary: "$2500-$3500",
-    experience: "4-6 years",
-    skills: ["AWS", "Docker", "Kubernetes", "CI/CD"],
-    match: 65,
-    description: "Manage and optimize our cloud infrastructure and deployment pipelines...",
-    postedDate: "2024-01-11",
-    isSaved: true,
-    urgency: "medium"
-  }
-];
-
-const jobTypes = ["All", "Full-time", "Part-time", "Contract", "Remote", "Internship"];
+const jobTypes = ["All", "full-time", "part-time", "contract", "remote", "internship"];
 const locations = ["All", "Toshkent", "Samarqand", "Remote", "Buxoro", "Andijon"];
 const experienceLevels = ["All", "Entry", "1-2 years", "3-5 years", "5+ years"];
 
 export default function JobMatches() {
-  const [jobs, setJobs] = useState(mockJobMatches);
-  const [filteredJobs, setFilteredJobs] = useState(mockJobMatches);
+  const [jobs, setJobs] = useState<JobMatch[]>([]);
+  const [filteredJobs, setFilteredJobs] = useState<JobMatch[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState({
     type: "All",
@@ -102,7 +27,25 @@ export default function JobMatches() {
     experience: "All",
     minSalary: ""
   });
-  const [savedJobs, setSavedJobs] = useState<number[]>([2, 5]);
+
+  // Fetch job matches on component mount
+  useEffect(() => {
+    loadJobMatches();
+  }, []);
+
+  const loadJobMatches = async () => {
+    try {
+      setIsLoading(true);
+      const matches = await jobService.getMatches();
+      setJobs(matches);
+      setFilteredJobs(matches);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Ish o'rinlarini yuklashda xatolik yuz berdi";
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Filter jobs based on search and filters
   useEffect(() => {
@@ -113,72 +56,80 @@ export default function JobMatches() {
       result = result.filter(job =>
         job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()))
+        (job.skills && job.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase())))
       );
     }
 
     // Type filter
     if (filters.type !== "All") {
-      result = result.filter(job => job.type === filters.type);
+      result = result.filter(job => job.workType === filters.type);
     }
 
     // Location filter
     if (filters.location !== "All") {
-      result = result.filter(job => job.location === filters.location);
+      result = result.filter(job => job.location?.toLowerCase().includes(filters.location.toLowerCase()));
     }
 
     // Experience filter
     if (filters.experience !== "All") {
-      result = result.filter(job => job.experience.includes(filters.experience));
+      result = result.filter(job => {
+        const expYears = job.experienceYears || "";
+        return expYears.includes(filters.experience);
+      });
     }
 
     setFilteredJobs(result);
   }, [searchTerm, filters, jobs]);
 
-  const handleSaveJob = (jobId: number) => {
-    setSavedJobs(prev => {
-      const newSaved = prev.includes(jobId)
-        ? prev.filter(id => id !== jobId)
-        : [...prev, jobId];
-      
-      // Update job saved status
-      setJobs(prevJobs => prevJobs.map(job =>
-        job.id === jobId ? { ...job, isSaved: !job.isSaved } : job
-      ));
-
-      // Show toast
+  const handleSaveJob = async (jobId: string) => {
+    try {
       const job = jobs.find(j => j.id === jobId);
-      if (job) {
-        if (!prev.includes(jobId)) {
-          toast.success(`"${job.title}" saqlandi`);
-        } else {
-          toast.info(`"${job.title}" saqlanganlar ro'yxatidan olindi`);
-        }
+      if (!job) return;
+
+      if (job.isSaved) {
+        await jobService.unsave(jobId);
+        toast.info(`"${job.title}" saqlanganlar ro'yxatidan olindi`);
+      } else {
+        await jobService.save(jobId);
+        toast.success(`"${job.title}" saqlandi`);
       }
-
-      return newSaved;
-    });
-  };
-
-  const handleShareJob = (job: any) => {
-    const shareText = `${job.title} - ${job.company} | ${job.location} | ${job.salary}`;
-    if (navigator.share) {
-      navigator.share({
-        title: job.title,
-        text: shareText,
-        url: window.location.href,
-      });
-    } else {
-      navigator.clipboard.writeText(shareText);
-      toast.success("Ish haqida ma'lumot nusxalandi!");
+      
+      // Update local state
+      setJobs(prevJobs => prevJobs.map(j =>
+        j.id === jobId ? { ...j, isSaved: !j.isSaved } : j
+      ));
+      setFilteredJobs(prevJobs => prevJobs.map(j =>
+        j.id === jobId ? { ...j, isSaved: !j.isSaved } : j
+      ));
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Xatolik yuz berdi";
+      toast.error(errorMessage);
     }
   };
 
-  const handleApply = (jobId: number) => {
-    const job = jobs.find(j => j.id === jobId);
-    if (job) {
+  const handleApply = async (jobId: string) => {
+    try {
+      const job = jobs.find(j => j.id === jobId);
+      if (!job) return;
+
+      if (job.alreadyApplied) {
+        toast.info("Siz allaqachon bu vakansiyaga ariza yuborgansiz");
+        return;
+      }
+
+      await applicationService.create(jobId);
       toast.success(`"${job.title}" ga ariza yuborildi!`);
-      // Keyin bu yerda haqiqiy ariza yuborish logikasi bo'ladi
+      
+      // Update local state
+      setJobs(prevJobs => prevJobs.map(j =>
+        j.id === jobId ? { ...j, alreadyApplied: true } : j
+      ));
+      setFilteredJobs(prevJobs => prevJobs.map(j =>
+        j.id === jobId ? { ...j, alreadyApplied: true } : j
+      ));
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Ariza yuborishda xatolik yuz berdi";
+      toast.error(errorMessage);
     }
   };
 
@@ -189,13 +140,20 @@ export default function JobMatches() {
     return "bg-red-100 text-red-700";
   };
 
-  const getUrgencyBadge = (urgency: string) => {
-    const config = {
-      high: { color: "bg-red-100 text-red-700", text: "Tez" },
-      medium: { color: "bg-yellow-100 text-yellow-700", text: "O'rta" },
-      low: { color: "bg-gray-100 text-gray-700", text: "Oddiy" }
-    };
-    return config[urgency as keyof typeof config] || config.low;
+  const handleShareJob = (job: JobMatch) => {
+    const shareText = `${job.title} - ${job.company} | ${job.location}`;
+    if (navigator.share) {
+      navigator.share({
+        title: job.title,
+        text: shareText,
+        url: window.location.href,
+      }).catch(() => {
+        // Share cancelled or failed
+      });
+    } else {
+      navigator.clipboard.writeText(shareText);
+      toast.success("Ish haqida ma'lumot nusxalandi!");
+    }
   };
 
   return (
@@ -301,7 +259,13 @@ export default function JobMatches() {
 
         {/* Job Listings */}
         <div className="grid gap-6">
-          {filteredJobs.length === 0 ? (
+          {isLoading ? (
+            <Card>
+              <CardContent className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </CardContent>
+            </Card>
+          ) : filteredJobs.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Search className="h-12 w-12 text-muted-foreground mb-4" />
@@ -323,12 +287,14 @@ export default function JobMatches() {
                         <div>
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="text-xl font-semibold">{job.title}</h3>
-                            <Badge className={getMatchColor(job.match)}>
-                              {job.match}% moslik
+                            <Badge className={getMatchColor(job.matchScore)}>
+                              {job.matchScore}% moslik
                             </Badge>
-                            <Badge className={getUrgencyBadge(job.urgency).color}>
-                              {getUrgencyBadge(job.urgency).text}
-                            </Badge>
+                            {job.urgent && (
+                              <Badge className="bg-red-100 text-red-700">
+                                Tez
+                              </Badge>
+                            )}
                           </div>
                           <div className="flex items-center text-muted-foreground mb-2">
                             <Building className="h-4 w-4 mr-1" />
@@ -362,29 +328,33 @@ export default function JobMatches() {
                         </div>
                         <div className="flex items-center">
                           <Briefcase className="h-4 w-4 mr-2 text-muted-foreground" />
-                          {job.type}
+                          {job.workType}
                         </div>
                         <div className="flex items-center">
                           <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                          {job.experience}
+                          {job.experienceYears || "Ko'rsatilmagan"}
                         </div>
                         <div className="flex items-center">
                           <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
-                          {job.salary}
+                          {job.salaryMin && job.salaryMax 
+                            ? `$${job.salaryMin}-$${job.salaryMax}`
+                            : "Ko'rsatilmagan"}
                         </div>
                       </div>
 
                       {/* Skills */}
-                      <div>
-                        <Label className="text-sm mb-2">Talab qilinadigan ko'nikmalar:</Label>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {job.skills.map((skill, index) => (
-                            <Badge key={index} variant="secondary" className="bg-blue-50 text-blue-700">
-                              {skill}
-                            </Badge>
-                          ))}
+                      {job.skills && job.skills.length > 0 && (
+                        <div>
+                          <Label className="text-sm mb-2">Talab qilinadigan ko'nikmalar:</Label>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {job.skills.map((skill, index) => (
+                              <Badge key={index} variant="secondary" className="bg-blue-50 text-blue-700">
+                                {skill}
+                              </Badge>
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       {/* Description */}
                       <p className="text-muted-foreground text-sm line-clamp-2">
@@ -396,17 +366,18 @@ export default function JobMatches() {
                     <div className="flex flex-col gap-2 min-w-[200px]">
                       <Button 
                         onClick={() => handleApply(job.id)}
+                        disabled={job.alreadyApplied}
                         className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                       >
-                        Ariza yuborish
+                        {job.alreadyApplied ? "Ariza yuborilgan" : "Ariza yuborish"}
                       </Button>
                       <Button variant="outline" asChild>
-                        <a href={`/jobs/${job.id}`} target="_blank" rel="noopener noreferrer">
+                        <a href={`/vacancies/${job.id}`} target="_blank" rel="noopener noreferrer">
                           Batafsil ma'lumot
                         </a>
                       </Button>
                       <div className="text-xs text-muted-foreground text-center">
-                        {new Date(job.postedDate).toLocaleDateString('uz-UZ')} da joylangan
+                        {new Date(job.createdAt).toLocaleDateString('uz-UZ')} da joylangan
                       </div>
                     </div>
                   </div>
@@ -424,7 +395,7 @@ export default function JobMatches() {
                 <Star className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{jobs.filter(j => j.match >= 90).length}</p>
+                <p className="text-2xl font-bold">{jobs.filter(j => j.matchScore >= 90).length}</p>
                 <p className="text-sm text-muted-foreground">Yuqori moslik</p>
               </div>
             </CardContent>
@@ -436,7 +407,7 @@ export default function JobMatches() {
                 <Bookmark className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{savedJobs.length}</p>
+                <p className="text-2xl font-bold">{jobs.filter(j => j.isSaved).length}</p>
                 <p className="text-sm text-muted-foreground">Saqlangan ishlar</p>
               </div>
             </CardContent>
