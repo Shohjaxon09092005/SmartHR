@@ -8,6 +8,7 @@ import vacancyRoutes from './routes/vacancies';
 import applicationRoutes from './routes/applications';
 import resumeRoutes from './routes/resumes';
 import jobRoutes from './routes/jobs';
+import profileRoutes from './routes/profile';
 import { authenticateToken } from './middleware/auth';
 
 dotenv.config();
@@ -35,6 +36,7 @@ app.use('/api/vacancies', vacancyRoutes);
 app.use('/api/applications', authenticateToken, applicationRoutes);
 app.use('/api/resumes', authenticateToken, resumeRoutes);
 app.use('/api/jobs', authenticateToken, jobRoutes);
+app.use('/api/profile', authenticateToken, profileRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

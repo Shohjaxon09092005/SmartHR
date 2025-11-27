@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,20 +10,26 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import { 
   User, Mail, Phone, MapPin, Calendar, Edit, Save, Upload, 
   Download, Eye, Share2, Award, Briefcase, GraduationCap, 
   Languages, Globe, Github, Linkedin, Twitter, Shield,
   Bell, Lock, Trash2, Star, CheckCircle, Zap
 } from "lucide-react";
+import { profileService, type ProfileData } from "@/services/profile";
+import { useAuthStore } from "@/store/authStore";
 
 export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState("personal");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuthStore();
 
-  // Mock user data
-  const [userData, setUserData] = useState({
+  // User data from API
+  const [userData, setUserData] = useState<ProfileData>({
     personal: {
       firstName: "Alisher",
       lastName: "Karimov",
@@ -108,12 +114,61 @@ export default function Profile() {
       jobAlerts: true,
       twoFactorAuth: false,
       privacy: "public"
+    },
+    stats: {
+      profileViews: 0,
+      applications: 0,
+      interviews: 0,
     }
   });
 
-  const handleSave = () => {
-    setIsEditing(false);
-    toast.success("Profil muvaffaqiyatli yangilandi!");
+  // Fetch profile data on mount
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  const loadProfile = async () => {
+    try {
+      setIsLoading(true);
+      const data = await profileService.get();
+      setUserData(data);
+    } catch (error: any) {
+      console.error("Failed to load profile:", error);
+      toast.error(error?.response?.data?.error || "Profil ma'lumotlarini yuklashda xatolik");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      
+      // Prepare update data
+      const updateData = {
+        firstName: userData.personal.firstName,
+        lastName: userData.personal.lastName,
+        phone: userData.personal.phone,
+        bio: userData.personal.bio,
+        location: userData.personal.location,
+        birthDate: userData.personal.birthDate,
+        professionalTitle: userData.professional.title,
+        experienceYears: userData.professional.experience,
+        currentCompany: userData.professional.currentCompany,
+        socialLinks: userData.social,
+        settings: userData.settings,
+      };
+
+      await profileService.update(updateData);
+      
+      setIsEditing(false);
+      toast.success("Profil muvaffaqiyatli yangilandi!");
+    } catch (error: any) {
+      console.error("Failed to save profile:", error);
+      toast.error(error?.response?.data?.error || "Profilni saqlashda xatolik");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,7 +184,7 @@ export default function Profile() {
   };
 
   const handleShareProfile = () => {
-    const profileUrl = `${window.location.origin}/profile/alisher`;
+    const profileUrl = `${window.location.origin}/profile/${user?.id}`;
     if (navigator.share) {
       navigator.share({
         title: `${userData.personal.firstName} ${userData.personal.lastName} - Profil`,
@@ -148,7 +203,39 @@ export default function Profile() {
     }
   };
 
-  const profileCompletion = 85; // Calculate based on filled fields
+  // Calculate profile completion
+  const calculateProfileCompletion = () => {
+    let filledFields = 0;
+    let totalFields = 0;
+
+    // Personal info
+    totalFields += 6;
+    if (userData.personal.firstName) filledFields++;
+    if (userData.personal.lastName) filledFields++;
+    if (userData.personal.email) filledFields++;
+    if (userData.personal.phone) filledFields++;
+    if (userData.personal.location) filledFields++;
+    if (userData.personal.bio) filledFields++;
+
+    // Professional info
+    totalFields += 2;
+    if (userData.professional.title) filledFields++;
+    if (userData.professional.resume) filledFields++;
+
+    return Math.round((filledFields / totalFields) * 100);
+  };
+
+  const profileCompletion = calculateProfileCompletion();
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -172,10 +259,22 @@ export default function Profile() {
               Ulashish
             </Button>
             <Button
-              onClick={() => setIsEditing(!isEditing)}
+              onClick={() => {
+                if (isEditing) {
+                  handleSave();
+                } else {
+                  setIsEditing(true);
+                }
+              }}
               variant={isEditing ? "default" : "outline"}
+              disabled={isSaving}
             >
-              {isEditing ? (
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saqlanmoqda...
+                </>
+              ) : isEditing ? (
                 <>
                   <Save className="h-4 w-4 mr-2" />
                   Saqlash
@@ -276,15 +375,15 @@ export default function Profile() {
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Profil ko'rilgan</span>
-                      <span className="font-medium">1,234</span>
+                      <span className="font-medium">{userData.stats.profileViews.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Arizalar</span>
-                      <span className="font-medium">45</span>
+                      <span className="font-medium">{userData.stats.applications}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Intervyular</span>
-                      <span className="font-medium">12</span>
+                      <span className="font-medium">{userData.stats.interviews}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -326,18 +425,20 @@ export default function Profile() {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="flex items-center">
-                      <Mail className="h-4 w-4 mr-2" />
-                      Email
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={userData.personal.email}
-                      disabled={!isEditing}
-                    />
-                  </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email" className="flex items-center">
+                        <Mail className="h-4 w-4 mr-2" />
+                        Email
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={userData.personal.email}
+                        disabled={true}
+                        className="bg-muted"
+                      />
+                      <p className="text-xs text-muted-foreground">Email manzilini o'zgartirib bo'lmaydi</p>
+                    </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="phone" className="flex items-center">
@@ -485,18 +586,26 @@ export default function Profile() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {userData.experience.map((exp, index) => (
-                    <div key={index} className="border-l-2 border-blue-500 pl-4 pb-4 last:pb-0">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-semibold">{exp.position}</h4>
-                          <p className="text-sm text-muted-foreground">{exp.company}</p>
+                  {userData.experience.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Hozircha tajriba qo'shilmagan
+                    </p>
+                  ) : (
+                    userData.experience.map((exp) => (
+                      <div key={exp.id} className="border-l-2 border-blue-500 pl-4 pb-4 last:pb-0">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-semibold">{exp.position}</h4>
+                            <p className="text-sm text-muted-foreground">{exp.company}</p>
+                          </div>
+                          <Badge variant="outline">{exp.period}</Badge>
                         </div>
-                        <Badge variant="outline">{exp.period}</Badge>
+                        {exp.description && (
+                          <p className="text-sm mt-2">{exp.description}</p>
+                        )}
                       </div>
-                      <p className="text-sm mt-2">{exp.description}</p>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </CardContent>
               </Card>
 
@@ -509,18 +618,26 @@ export default function Profile() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {userData.education.map((edu, index) => (
-                    <div key={index} className="border-l-2 border-green-500 pl-4 pb-4 last:pb-0">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-semibold">{edu.degree}</h4>
-                          <p className="text-sm text-muted-foreground">{edu.institution}</p>
+                  {userData.education.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Hozircha ta'lim qo'shilmagan
+                    </p>
+                  ) : (
+                    userData.education.map((edu) => (
+                      <div key={edu.id} className="border-l-2 border-green-500 pl-4 pb-4 last:pb-0">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-semibold">{edu.degree}</h4>
+                            <p className="text-sm text-muted-foreground">{edu.institution}</p>
+                          </div>
+                          {edu.period && <Badge variant="outline">{edu.period}</Badge>}
                         </div>
-                        <Badge variant="outline">{edu.period}</Badge>
+                        {edu.description && (
+                          <p className="text-sm mt-2">{edu.description}</p>
+                        )}
                       </div>
-                      <p className="text-sm mt-2">{edu.description}</p>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -536,32 +653,46 @@ export default function Profile() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid gap-4 md:grid-cols-2">
-                  {userData.portfolio.map((project, index) => (
-                    <Card key={index} className="relative">
-                      <CardContent className="p-4">
-                        <h4 className="font-semibold mb-2">{project.title}</h4>
-                        <p className="text-sm text-muted-foreground mb-3">{project.description}</p>
-                        <div className="flex flex-wrap gap-1 mb-3">
-                          {project.technologies.map((tech, techIndex) => (
-                            <Badge key={techIndex} variant="secondary" className="text-xs">
-                              {tech}
-                            </Badge>
-                          ))}
-                        </div>
-                        <Button variant="outline" size="sm" asChild>
-                          <a href={project.link} target="_blank" rel="noopener noreferrer">
-                            <Github className="h-4 w-4 mr-1" />
-                            Kodni ko'rish
-                          </a>
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-                <Button className="mt-4" variant="outline">
-                  + Yangi loyiha qo'shish
-                </Button>
+                {userData.portfolio.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    Hozircha portfolio loyihalari qo'shilmagan
+                  </p>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {userData.portfolio.map((project) => (
+                      <Card key={project.id} className="relative">
+                        <CardContent className="p-4">
+                          <h4 className="font-semibold mb-2">{project.title}</h4>
+                          {project.description && (
+                            <p className="text-sm text-muted-foreground mb-3">{project.description}</p>
+                          )}
+                          {project.technologies && project.technologies.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-3">
+                              {project.technologies.map((tech, techIndex) => (
+                                <Badge key={techIndex} variant="secondary" className="text-xs">
+                                  {tech}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                          {project.link && (
+                            <Button variant="outline" size="sm" asChild>
+                              <a href={project.link} target="_blank" rel="noopener noreferrer">
+                                <Github className="h-4 w-4 mr-1" />
+                                Kodni ko'rish
+                              </a>
+                            </Button>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+                {isEditing && (
+                  <Button className="mt-4" variant="outline">
+                    + Yangi loyiha qo'shish
+                  </Button>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

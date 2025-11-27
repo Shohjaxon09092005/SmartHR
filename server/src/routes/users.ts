@@ -83,15 +83,40 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
 
     const { firstName, lastName, phone, avatar } = req.body;
 
+    // Build dynamic update query
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramCount = 1;
+
+    if (firstName !== undefined) {
+      updates.push(`first_name = $${paramCount++}`);
+      values.push(firstName);
+    }
+    if (lastName !== undefined) {
+      updates.push(`last_name = $${paramCount++}`);
+      values.push(lastName);
+    }
+    if (phone !== undefined) {
+      updates.push(`phone = $${paramCount++}`);
+      values.push(phone);
+    }
+    if (avatar !== undefined) {
+      updates.push(`avatar = $${paramCount++}`);
+      values.push(avatar);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    values.push(userId);
+
     const result = await pool.query(
       `UPDATE users
-       SET first_name = COALESCE($1, first_name),
-           last_name = COALESCE($2, last_name),
-           phone = COALESCE($3, phone),
-           avatar = COALESCE($4, avatar)
-       WHERE id = $5
+       SET ${updates.join(', ')}
+       WHERE id = $${paramCount}
        RETURNING id, email, first_name, last_name, phone, role, avatar, created_at`,
-      [firstName, lastName, phone, avatar, userId]
+      values
     );
 
     if (result.rows.length === 0) {

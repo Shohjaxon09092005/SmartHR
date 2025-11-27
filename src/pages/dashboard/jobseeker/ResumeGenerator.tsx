@@ -7,10 +7,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { generateResume } from "@/lib/aiClient";
-import { Loader2, Sparkles, Download, Copy, User, Briefcase, GraduationCap, Wrench, BookOpen } from "lucide-react";
+import { resumeService } from "@/services/resumes";
+import { Loader2, Sparkles, Download, Copy, User, Briefcase, GraduationCap, Wrench, BookOpen, Save, CheckCircle } from "lucide-react";
 
 export default function ResumeGenerator() {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     experience: "",
@@ -37,12 +40,45 @@ export default function ResumeGenerator() {
         .trim();
       
       setGeneratedResume(cleanedResume);
+      setIsSaved(false); // Reset saved state when new resume is generated
       toast.success("Professional resume yaratildi!");
     } catch (error) {
       toast.error("AI xizmatida xatolik yuz berdi");
       console.error("Generation error:", error);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleSaveToProfile = async () => {
+    if (!generatedResume) {
+      toast.error("Avval resume yarating!");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Convert skills string to array
+      const skillsArray = formData.skills
+        .split(/[,\n]/)
+        .map(skill => skill.trim())
+        .filter(skill => skill.length > 0);
+
+      // Save resume to profile
+      await resumeService.createOrUpdate({
+        content: generatedResume,
+        skills: skillsArray,
+        experience: formData.experience || undefined,
+        education: formData.education || undefined,
+      });
+
+      setIsSaved(true);
+      toast.success("Resume profilingizga muvaffaqiyatli saqlandi! Profil sahifasida ko'rishingiz mumkin.");
+    } catch (error: any) {
+      console.error("Save resume error:", error);
+      toast.error(error?.response?.data?.error || "Resumeni saqlashda xatolik yuz berdi");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -230,6 +266,33 @@ Redux, Next.js, MongoDB, PostgreSQL, Docker, AWS..."
                         <Download className="mr-2 h-4 w-4" />
                         Yuklab olish
                       </Button>
+                      <Button
+                        variant={isSaved ? "default" : "default"}
+                        size="sm"
+                        onClick={handleSaveToProfile}
+                        disabled={isSaving || isSaved}
+                        className={isSaved 
+                          ? "bg-green-600 hover:bg-green-700 text-white" 
+                          : "bg-purple-600 hover:bg-purple-700 text-white"
+                        }
+                      >
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Saqlanmoqda...
+                          </>
+                        ) : isSaved ? (
+                          <>
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Saqlandi
+                          </>
+                        ) : (
+                          <>
+                            <Save className="mr-2 h-4 w-4" />
+                            Profilga saqlash
+                          </>
+                        )}
+                      </Button>
                     </div>
                   </div>
                   
@@ -241,10 +304,19 @@ Redux, Next.js, MongoDB, PostgreSQL, Docker, AWS..."
                     </CardContent>
                   </Card>
                   
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                    <p className="text-sm text-green-700 flex items-center">
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      <strong>Muvaffaqiyatli yaratildi!</strong> Resume ni nusxalang yoki yuklab oling.
+                  <div className={`border rounded-lg p-3 ${isSaved ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'}`}>
+                    <p className={`text-sm flex items-center ${isSaved ? 'text-green-700' : 'text-blue-700'}`}>
+                      {isSaved ? (
+                        <>
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                          <strong>Profilga saqlandi!</strong> Profil sahifasida ko'rishingiz mumkin.
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          <strong>Muvaffaqiyatli yaratildi!</strong> Resume ni nusxalang, yuklab oling yoki profilingizga saqlang.
+                        </>
+                      )}
                     </p>
                   </div>
                 </div>

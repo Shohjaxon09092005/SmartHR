@@ -93,6 +93,12 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+-- Drop triggers if they exist (for re-running migration)
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
+DROP TRIGGER IF EXISTS update_vacancies_updated_at ON vacancies;
+DROP TRIGGER IF EXISTS update_applications_updated_at ON applications;
+DROP TRIGGER IF EXISTS update_resumes_updated_at ON resumes;
+
 -- Triggers to automatically update updated_at
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

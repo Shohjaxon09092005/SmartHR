@@ -50,6 +50,19 @@ router.post('/register', async (req, res) => {
 
     const user = result.rows[0];
 
+    // Automatically create an empty profile for the new user
+    try {
+      await pool.query(
+        `INSERT INTO user_profiles (user_id, social_links, settings)
+         VALUES ($1, '{}', '{"emailNotifications": true, "jobAlerts": true, "twoFactorAuth": false, "privacy": "public"}')
+         ON CONFLICT (user_id) DO NOTHING`,
+        [user.id]
+      );
+    } catch (profileError) {
+      // Log error but don't fail registration if profile creation fails
+      console.error('Failed to create user profile:', profileError);
+    }
+
     // Generate JWT token
     const jwtSecret = process.env.JWT_SECRET || 'secret';
     const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
