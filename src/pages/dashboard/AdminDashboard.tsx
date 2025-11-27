@@ -19,10 +19,18 @@ import {
   Filter,
   Search
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState, useEffect } from "react";
+import { userService } from "@/services/users";
+import { vacancyService, type Vacancy } from "@/services/vacancies";
+import { applicationService } from "@/services/applications";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import type { User } from "@/types";
 
-// Yangi mock ma'lumotlar
+// Mock regional stats (can be enhanced later with real API)
 const regionalStats = [
   { region: "Toshkent", jobSeekers: 450, employers: 45, vacancies: 120, matchRate: 78 },
   { region: "Samarqand", jobSeekers: 320, employers: 28, vacancies: 85, matchRate: 65 },
@@ -39,101 +47,34 @@ const skillGapData = [
   { skill: "Liderlik", demand: 75, supply: 50, gap: 25 },
 ];
 
-const mockUsers = [
-  { 
-    id: "1", 
-    name: "Alisher Karimov", 
-    email: "alisher@example.com", 
-    phone: "+998901234567",
-    region: "Toshkent",
-    role: "jobseeker", 
-    status: "active",
-    registrationDate: "2024-01-15",
-    lastActive: "2024-03-20"
-  },
-  { 
-    id: "2", 
-    name: "Nodira Yusupova", 
-    email: "nodira@example.com", 
-    phone: "+998901234568",
-    region: "Samarqand",
-    role: "employer", 
-    status: "active",
-    registrationDate: "2024-02-10",
-    lastActive: "2024-03-19"
-  },
-  { 
-    id: "3", 
-    name: "Jahongir Mahmudov", 
-    email: "jahongir@example.com", 
-    phone: "+998901234569",
-    region: "Buxoro",
-    role: "jobseeker", 
-    status: "pending",
-    registrationDate: "2024-03-01",
-    lastActive: "2024-03-18"
-  },
-  { 
-    id: "4", 
-    name: "Dilnoza Rashidova", 
-    email: "dilnoza@example.com", 
-    phone: "+998901234570",
-    region: "Andijon",
-    role: "employer", 
-    status: "active",
-    registrationDate: "2024-01-25",
-    lastActive: "2024-03-20"
-  },
-];
-
-const mockVacancies = [
-  { 
-    id: "1", 
-    title: "Frontend Developer", 
-    company: "Tech Solutions", 
-    applicants: 15, 
-    status: "active",
-    region: "Toshkent",
-    salary: "2000-2500$",
-    postedDate: "2024-03-15",
-    category: "Texnologiya"
-  },
-  { 
-    id: "2", 
-    title: "Backend Developer", 
-    company: "Digital Agency", 
-    applicants: 8, 
-    status: "active",
-    region: "Toshkent",
-    salary: "1800-2200$",
-    postedDate: "2024-03-10",
-    category: "Texnologiya"
-  },
-  { 
-    id: "3", 
-    title: "UI/UX Designer", 
-    company: "Creative Studio", 
-    applicants: 12, 
-    status: "pending",
-    region: "Samarqand",
-    salary: "1500-1800$",
-    postedDate: "2024-03-18",
-    category: "Dizayn"
-  },
-  { 
-    id: "4", 
-    title: "Project Manager", 
-    company: "Consulting Group", 
-    applicants: 6, 
-    status: "active",
-    region: "Buxoro",
-    salary: "2200-2800$",
-    postedDate: "2024-03-12",
-    category: "Menejment"
-  },
-];
-
 export default function AdminDashboard() {
+  const navigate = useNavigate();
+  const [users, setUsers] = useState<User[]>([]);
+  const [vacancies, setVacancies] = useState<Vacancy[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch data on mount
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      const [usersData, vacanciesData] = await Promise.all([
+        userService.getAll(),
+        vacancyService.getAll({ status: "active" }),
+      ]);
+      
+      setUsers(usersData);
+      setVacancies(vacanciesData.slice(0, 4));
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Ma'lumotlarni yuklashda xatolik";
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -156,36 +97,42 @@ export default function AdminDashboard() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <StatsCard
-            title="Jami foydalanuvchilar"
-            value="1,234"
-            change="+12% oxirgi oyda"
-            icon={Users}
-            trend="up"
-          />
-          <StatsCard
-            title="Ish beruvchilar"
-            value="156"
-            change="+8% oxirgi oyda"
-            icon={Building2}
-            trend="up"
-          />
-          <StatsCard
-            title="Aktiv vakansiyalar"
-            value="342"
-            change="+15% oxirgi oyda"
-            icon={Briefcase}
-            trend="up"
-          />
-          <StatsCard
-            title="AI Match Rate"
-            value="89%"
-            change="+5% o'tgan oyga nisbatan"
-            icon={TrendingUp}
-            trend="up"
-          />
-        </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <StatsCard
+                title="Jami foydalanuvchilar"
+                value={users.length.toString()}
+                change={`${users.filter(u => u.role === 'jobseeker').length} ish izlovchi`}
+                icon={Users}
+                trend="up"
+              />
+              <StatsCard
+                title="Ish beruvchilar"
+                value={users.filter(u => u.role === 'employer').length.toString()}
+                change={`${users.filter(u => u.role === 'employer').length} ta kompaniya`}
+                icon={Building2}
+                trend="up"
+              />
+              <StatsCard
+                title="Aktiv vakansiyalar"
+                value={vacancies.length.toString()}
+                change={`${vacancies.filter(v => v.status === 'active').length} ta faol`}
+                icon={Briefcase}
+                trend="up"
+              />
+              <StatsCard
+                title="AI Match Rate"
+                value="85%"
+                change="Platforma koeffitsiyenti"
+                icon={TrendingUp}
+                trend="up"
+              />
+            </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Regional Statistics */}
@@ -289,60 +236,65 @@ export default function AdminDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{user.name}</div>
-                        <div className="text-sm text-muted-foreground">{user.email}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1 text-sm">
-                        <Phone className="h-3 w-3" />
-                        {user.phone}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1 text-sm">
-                        <MapPin className="h-3 w-3" />
-                        {user.region}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="capitalize">
-                        {user.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={user.status === "active" ? "default" : "secondary"}
-                        className={user.status === "active" ? "bg-green-100 text-green-800" : ""}
-                      >
-                        {user.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1 text-sm">
-                        <Calendar className="h-3 w-3" />
-                        {user.registrationDate}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end space-x-2">
-                        <Button size="sm" variant="ghost" title="Ko'rish">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="ghost" title="Tasdiqlash">
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                        </Button>
-                        <Button size="sm" variant="ghost" title="Rad etish">
-                          <XCircle className="h-4 w-4 text-red-600" />
-                        </Button>
-                      </div>
+                {users.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      Foydalanuvchilar topilmadi
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  users.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{user.firstName} {user.lastName}</div>
+                          <div className="text-sm text-muted-foreground">{user.email}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {user.phone ? (
+                          <div className="flex items-center gap-1 text-sm">
+                            <Phone className="h-3 w-3" />
+                            {user.phone}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm">-</span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="capitalize">
+                          {user.role === 'jobseeker' ? 'Ish izlovchi' : user.role === 'employer' ? 'Ish beruvchi' : 'Admin'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="default" className="bg-green-100 text-green-800">
+                          Active
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1 text-sm">
+                          <Calendar className="h-3 w-3" />
+                          {new Date(user.createdAt).toLocaleDateString('uz-UZ')}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end space-x-2">
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            title="Ko'rish"
+                            onClick={() => navigate(`/dashboard/users`)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -384,45 +336,63 @@ export default function AdminDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockVacancies.map((vacancy) => (
-                  <TableRow key={vacancy.id}>
-                    <TableCell className="font-medium">{vacancy.title}</TableCell>
-                    <TableCell>{vacancy.company}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1 text-sm">
-                        <MapPin className="h-3 w-3" />
-                        {vacancy.region}
-                      </div>
-                    </TableCell>
-                    <TableCell>{vacancy.salary}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Users className="h-3 w-3" />
-                        {vacancy.applicants} ta
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{vacancy.category}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={vacancy.status === "active" ? "default" : "secondary"}
-                        className={vacancy.status === "active" ? "bg-green-100 text-green-800" : ""}
-                      >
-                        {vacancy.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button size="sm" variant="ghost">
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                {vacancies.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                      Vakansiyalar topilmadi
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  vacancies.map((vacancy) => (
+                    <TableRow key={vacancy.id}>
+                      <TableCell className="font-medium">{vacancy.title}</TableCell>
+                      <TableCell>{vacancy.company}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1 text-sm">
+                          <MapPin className="h-3 w-3" />
+                          {vacancy.location}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {vacancy.salaryMin && vacancy.salaryMax 
+                          ? `$${vacancy.salaryMin}-$${vacancy.salaryMax}` 
+                          : vacancy.salary || "Ko'rsatilmagan"}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Users className="h-3 w-3" />
+                          {(vacancy as any).applicationCount || 0} ta
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{vacancy.category || "Noma'lum"}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={vacancy.status === "active" ? "default" : "secondary"}
+                          className={vacancy.status === "active" ? "bg-green-100 text-green-800" : ""}
+                        >
+                          {vacancy.status === "active" ? "Faol" : vacancy.status === "closed" ? "Yopilgan" : "Kutilmoqda"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          onClick={() => navigate(`/dashboard/vacancies`)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </CardContent>
-        </Card> 
+        </Card>
+          </>
+        )}
       </div>
     </DashboardLayout>
   );
