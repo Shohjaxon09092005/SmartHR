@@ -18,6 +18,7 @@ import {
   Bell, Lock, Trash2, Star, CheckCircle, Zap
 } from "lucide-react";
 import { profileService, type ProfileData } from "@/services/profile";
+import { userService } from "@/services/users";
 import { useAuthStore } from "@/store/authStore";
 
 export default function Profile() {
@@ -149,6 +150,7 @@ export default function Profile() {
         firstName: userData.personal.firstName,
         lastName: userData.personal.lastName,
         phone: userData.personal.phone,
+        avatar: userData.personal.avatar,
         bio: userData.personal.bio,
         location: userData.personal.location,
         birthDate: userData.personal.birthDate,
@@ -171,11 +173,59 @@ export default function Profile() {
     }
   };
 
-  const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      // Bu yerda haqiqiy fayl yuklash logikasi bo'ladi
-      toast.success("Profil rasmi yangilandi!");
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error("Faqat rasm fayllari qabul qilinadi!");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Rasm hajmi 5MB dan kichik bo'lishi kerak!");
+      return;
+    }
+
+    try {
+      // Convert image to base64
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64String = reader.result as string;
+        
+        try {
+          // Update avatar in user data immediately for preview
+          setUserData(prev => ({
+            ...prev,
+            personal: {
+              ...prev.personal,
+              avatar: base64String
+            }
+          }));
+
+          // Save to backend
+          if (user?.id) {
+            await userService.update(user.id, { avatar: base64String });
+            toast.success("Profil rasmi muvaffaqiyatli yangilandi!");
+          }
+        } catch (error: any) {
+          console.error("Avatar save error:", error);
+          toast.error(error?.response?.data?.error || "Rasmni saqlashda xatolik");
+          // Revert on error
+          loadProfile();
+        }
+      };
+      
+      reader.onerror = () => {
+        toast.error("Rasmni o'qishda xatolik yuz berdi");
+      };
+      
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error("Avatar upload error:", error);
+      toast.error("Rasmni yuklashda xatolik yuz berdi");
     }
   };
 
@@ -342,14 +392,19 @@ export default function Profile() {
                   <div className="flex flex-col items-center space-y-4">
                     <div className="relative">
                       <img
-                        src={userData.personal.avatar}
+                        src={userData.personal.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.personal.firstName + ' ' + userData.personal.lastName)}&background=6366f1&color=fff&size=128`}
                         alt="Profile"
                         className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
+                        onError={(e) => {
+                          // Fallback to placeholder if image fails to load
+                          const target = e.target as HTMLImageElement;
+                          target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.personal.firstName + ' ' + userData.personal.lastName)}&background=6366f1&color=fff&size=128`;
+                        }}
                       />
                       {isEditing && (
                         <Button
                           size="sm"
-                          className="absolute bottom-0 right-0 rounded-full w-8 h-8 p-0"
+                          className="absolute bottom-0 right-0 rounded-full w-8 h-8 p-0 bg-primary hover:bg-primary/90"
                           onClick={() => fileInputRef.current?.click()}
                         >
                           <Upload className="h-4 w-4" />

@@ -10,6 +10,7 @@ const profileUpdateSchema = z.object({
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   phone: z.string().optional(),
+  avatar: z.string().optional(),
   bio: z.string().optional(),
   location: z.string().optional(),
   birthDate: z.string().optional(),
@@ -249,7 +250,7 @@ router.put('/', authenticateToken, async (req: AuthRequest, res) => {
     const validatedData = profileUpdateSchema.parse(req.body);
 
     // Update user basic info if provided
-    if (validatedData.firstName || validatedData.lastName || validatedData.phone) {
+    if (validatedData.firstName || validatedData.lastName || validatedData.phone || validatedData.avatar) {
       const userUpdates: string[] = [];
       const userValues: any[] = [];
       let userParamCount = 1;
@@ -265,6 +266,10 @@ router.put('/', authenticateToken, async (req: AuthRequest, res) => {
       if (validatedData.phone !== undefined) {
         userUpdates.push(`phone = $${userParamCount++}`);
         userValues.push(validatedData.phone || null);
+      }
+      if (validatedData.avatar) {
+        userUpdates.push(`avatar = $${userParamCount++}`);
+        userValues.push(validatedData.avatar);
       }
 
       userValues.push(userId);

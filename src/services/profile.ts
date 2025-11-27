@@ -67,6 +67,7 @@ export interface UpdateProfileData {
   firstName?: string;
   lastName?: string;
   phone?: string;
+  avatar?: string;
   bio?: string;
   location?: string;
   birthDate?: string;
