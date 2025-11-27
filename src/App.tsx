@@ -6,6 +6,9 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { useAuthStore } from "@/store/authStore";
 
+// Landing page
+import LandingPage from "./pages/LandingPage";
+
 // Auth pages
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
@@ -44,6 +47,9 @@ const App = () => {
           }}
         >
           <Routes>
+            {/* Landing page */}
+            <Route path="/landing-page" element={<LandingPage />} />
+
             {/* Redirect root based on auth status */}
             <Route
               path="/"
@@ -51,7 +57,7 @@ const App = () => {
                 user ? (
                   <Navigate to="/dashboard" replace />
                 ) : (
-                  <Navigate to="/login" replace />
+                  <Navigate to="/landing-page" replace />
                 )
               }
             />
