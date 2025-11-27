@@ -21,11 +21,13 @@ import JobSeekerDashboard from "./pages/dashboard/jobseeker/JobSeekerDashboard";
 import ResumeGenerator from "./pages/dashboard/jobseeker/ResumeGenerator";
 import CVAnalyzer from "./pages/dashboard/jobseeker/CVAnalyzer";
 import JobMatches from "./pages/dashboard/jobseeker/JobMatches";
+import JobFinder from "./pages/dashboard/jobseeker/JobFinder";
 import Applications from "./pages/dashboard/jobseeker/Applications";
 import Profile from "./pages/dashboard/jobseeker/Profile";
 import VacanciesList from "./pages/dashboard/employer/VacanciesList";
 import EditVacancy from "./pages/dashboard/employer/EditVacancy";
 import Applicants from "./pages/dashboard/employer/Applicants";
+import CandidateFinder from "./pages/dashboard/employer/CandidateFinder";
 import UsersPage from "./pages/dashboard/UsersPage";
 import VacanciesPage from "./pages/dashboard/VacanciesPage";
 import InterviewSimulator from "./pages/dashboard/jobseeker/InterviewSimulator";
@@ -138,6 +140,14 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/dashboard/candidate-finder"
+              element={
+                <ProtectedRoute allowedRoles={["employer"]}>
+                  <CandidateFinder />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Job Seeker Routes */}
             <Route
@@ -161,6 +171,14 @@ const App = () => {
               element={
                 <ProtectedRoute allowedRoles={["jobseeker"]}>
                   <JobMatches />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/job-finder"
+              element={
+                <ProtectedRoute allowedRoles={["jobseeker"]}>
+                  <JobFinder />
                 </ProtectedRoute>
               }
             />

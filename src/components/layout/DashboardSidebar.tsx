@@ -12,6 +12,8 @@ import {
   ClipboardList,
   BrainCircuit,
   TrendingUp,
+  Search,
+  UserSearch,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import type { UserRole } from "@/types";
@@ -56,6 +58,12 @@ const navItems: NavItem[] = [
     roles: ["employer"],
   },
   {
+    title: "AI Candidate Finder",
+    href: "/dashboard/candidate-finder",
+    icon: UserSearch,
+    roles: ["employer"],
+  },
+  {
     title: "AI Resume Generator",
     href: "/dashboard/resume-generator",
     icon: BrainCircuit,
@@ -71,6 +79,12 @@ const navItems: NavItem[] = [
     title: "Mos ishlar",
     href: "/dashboard/job-matches",
     icon: Briefcase,
+    roles: ["jobseeker"],
+  },
+  {
+    title: "AI Job Finder",
+    href: "/dashboard/job-finder",
+    icon: Search,
     roles: ["jobseeker"],
   },
   {

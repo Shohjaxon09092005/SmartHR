@@ -3,6 +3,7 @@ import type { Vacancy } from "@/types";
 
 export interface JobMatch extends Vacancy {
   matchScore: number;
+  matchReason?: string;
   alreadyApplied?: boolean;
   isSaved?: boolean;
 }
